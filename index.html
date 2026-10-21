@@ -1,774 +1,4 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>lunarorg - Ultra Liquid Glass</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        xDark: '#000000',
-                        xBlue: '#1d9bf0'
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Cropper.js -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
-    <!-- Firebase SDKs Compat -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-    <style>
-        body {
-            background: #030308;
-            overflow: hidden;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-
-        .liquid-bg-blob-1 {
-            position: absolute;
-            top: -10%;
-            left: -10%;
-            width: 70vw;
-            height: 70vw;
-            background: radial-gradient(circle, rgba(29, 155, 240, 0.25) 0%, rgba(0,0,0,0) 70%);
-            filter: blur(60px);
-            animation: floatBlob 12s infinite alternate ease-in-out;
-        }
-
-        .liquid-bg-blob-2 {
-            position: absolute;
-            bottom: -10%;
-            right: -10%;
-            width: 75vw;
-            height: 75vw;
-            background: radial-gradient(circle, rgba(124, 58, 237, 0.25) 0%, rgba(0,0,0,0) 70%);
-            filter: blur(60px);
-            animation: floatBlob 15s infinite alternate-reverse ease-in-out;
-        }
-
-        @keyframes floatBlob {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(30px, -40px) scale(1.1); }
-        }
-
-        .ultra-liquid-glass {
-            background: rgba(18, 18, 28, 0.85);
-            backdrop-filter: blur(25px) saturate(200%);
-            -webkit-backdrop-filter: blur(25px) saturate(200%);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.5);
-        }
-
-        .liquid-element {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-
-        .liquid-input {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-
-        .liquid-bubble-me {
-            background: linear-gradient(135deg, #1d9bf0 0%, #1a8cd8 100%);
-            box-shadow: 0 4px 15px rgba(29, 155, 240, 0.3);
-        }
-
-        .liquid-bubble-other {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-
-        .typing-dot {
-            animation: typingBounce 1.4s infinite ease-in-out both;
-        }
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-
-        @keyframes typingBounce {
-            0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
-            40% { transform: scale(1); opacity: 1; }
-        }
-
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.25);
-            border-radius: 10px;
-        }
-
-        .cropper-view-box, .cropper-face {
-            border-radius: 50%;
-        }
-    </style>
-</head>
-<body class="text-white h-[100dvh] w-screen flex flex-col justify-center items-center relative overflow-hidden">
-
-    <div class="liquid-bg-blob-1"></div>
-    <div class="liquid-bg-blob-2"></div>
-
-    <div class="w-full max-w-md h-[100dvh] sm:h-[92vh] ultra-liquid-glass sm:rounded-3xl flex flex-col relative overflow-hidden z-10">
-
-        <!-- BANNIÈRE PERMANENTE DE NOTIFICATION EN HAUT -->
-        <div id="topNotificationBar" onclick="switchTab('messages')" class="w-full bg-xBlue/90 backdrop-blur-md px-4 py-2 text-white text-[11px] font-bold flex justify-between items-center z-50 cursor-pointer shadow-lg hidden">
-            <span id="topNotifText" class="truncate flex items-center gap-1.5"><i class="fa-solid fa-bell animate-bounce"></i> 0 message non lu</span>
-            <i class="fa-solid fa-chevron-right text-[10px]"></i>
-        </div>
-
-        <!-- ECRAN 1 : CONNEXION / INSCRIPTION -->
-        <div id="loginScreen" class="absolute inset-0 z-50 flex flex-col justify-center items-center p-6 text-center overflow-y-auto bg-black/95 backdrop-blur-2xl">
-            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-3 shadow-lg border border-white/40">
-                <i class="fa-solid fa-moon text-black text-3xl"></i>
-            </div>
-            <h1 class="text-2xl font-black tracking-tight text-white mb-1">lunarorg</h1>
-            <p class="text-zinc-400 text-xs mb-6">Connectez-vous à votre monde</p>
-
-            <div class="w-full max-w-xs space-y-3.5">
-                <input type="text" id="usernameInput" placeholder="Nom d'utilisateur (ex: lorenzo)" class="w-full liquid-input focus:border-xBlue rounded-2xl px-4 py-3 text-white placeholder-zinc-500 text-xs outline-none">
-                <input type="password" id="passwordInput" placeholder="Mot de passe (6 car. min)" class="w-full liquid-input focus:border-xBlue rounded-2xl px-4 py-3 text-white placeholder-zinc-500 text-xs outline-none">
-                
-                <p id="authError" class="text-red-400 text-xs hidden"></p>
-
-                <button onclick="loginOrRegister()" class="w-full bg-white hover:bg-zinc-200 text-black font-extrabold py-3.5 rounded-2xl shadow-lg active:scale-95 text-xs tracking-wider uppercase transition-all">
-                    Se connecter / S'inscrire 🚀
-                </button>
-            </div>
-        </div>
-
-        <!-- MODAL NOUVELLE INSCRIPTION : CHOIX DU NOM D'AFFICHAGE -->
-        <div id="setupProfileModal" class="absolute inset-0 z-[60] flex flex-col justify-center items-center p-6 text-center bg-black/95 backdrop-blur-2xl hidden">
-            <div class="w-14 h-14 bg-xBlue/20 text-xBlue rounded-full flex items-center justify-center mb-3 border border-xBlue/40 text-2xl">
-                <i class="fa-solid fa-user-gear"></i>
-            </div>
-            <h2 class="text-xl font-black text-white mb-1">Bienvenue ! 🎉</h2>
-            <p class="text-zinc-400 text-xs mb-6">Choisissez votre nom d'affichage pour terminer l'inscription.</p>
-
-            <div class="w-full max-w-xs space-y-3.5">
-                <input type="text" id="newDisplayNameInput" placeholder="Nom d'affichage (ex: Lorenzo ⚡)" class="w-full liquid-input focus:border-xBlue rounded-2xl px-4 py-3 text-white placeholder-zinc-500 text-xs outline-none">
-                
-                <button onclick="submitNewDisplayName()" class="w-full bg-xBlue hover:bg-sky-500 text-white font-extrabold py-3.5 rounded-2xl shadow-lg active:scale-95 text-xs tracking-wider uppercase transition-all">
-                    Valider mon profil ✨
-                </button>
-            </div>
-        </div>
-
-        <!-- CONTENU PRINCIPAL AVEC ONGLETS -->
-        <div id="mainApp" class="flex-1 flex flex-col h-full overflow-hidden hidden relative">
-
-            <!-- 1. ONGLET PUBLICATIONS -->
-            <div id="tabFeed" class="flex-1 flex flex-col h-full overflow-hidden">
-                <div class="p-3.5 border-b border-white/10 liquid-element shrink-0 flex justify-between items-center">
-                    <h2 class="font-black text-sm text-white flex items-center gap-2">
-                        <i class="fa-solid fa-moon text-xBlue"></i> lunarorg
-                    </h2>
-                    <button onclick="openCreatePostModal()" class="w-8 h-8 bg-xBlue text-white rounded-full flex items-center justify-center text-xs shadow-md active:scale-95">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
-                </div>
-
-                <div class="flex-1 overflow-y-auto p-3 space-y-3 pb-20" id="postsContainer">
-                    <div class="text-center text-zinc-500 py-12 text-xs">Chargement en temps réel...</div>
-                </div>
-            </div>
-
-            <!-- 2. ONGLET MESSAGES -->
-            <div id="tabMessages" class="flex-1 flex flex-col h-full overflow-hidden hidden">
-                <div class="p-3.5 border-b border-white/10 liquid-element shrink-0 flex justify-between items-center">
-                    <h2 class="font-black text-sm text-white">Messages privés 💬</h2>
-                    <button onclick="toggleUserSearchModal()" class="w-8 h-8 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center text-xs active:scale-95 transition-all">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                </div>
-
-                <div id="msgSearchBar" class="p-2 border-b border-white/10 liquid-element hidden">
-                    <div class="relative">
-                        <input type="text" id="searchUserInput" oninput="searchUsers()" placeholder="Rechercher un compte (@pseudo ou nom)..." class="w-full liquid-input focus:border-xBlue rounded-full pl-8 pr-8 py-2 text-xs text-white outline-none">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-zinc-400 text-xs"></i>
-                        <button onclick="toggleUserSearchModal()" class="absolute right-3 top-2 text-zinc-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto p-3 space-y-4 pb-20">
-                    <div id="searchResultsSection" class="hidden">
-                        <div class="text-[11px] font-bold text-xBlue uppercase tracking-wider mb-2">Résultats de la recherche</div>
-                        <div id="searchResultsList" class="space-y-2"></div>
-                        <div class="h-px bg-white/10 my-3"></div>
-                    </div>
-
-                    <div id="requestsSection" class="hidden">
-                        <div class="text-[11px] font-bold text-xBlue uppercase tracking-wider mb-2">Demandes de messages</div>
-                        <div id="requestsList" class="space-y-2"></div>
-                        <div class="h-px bg-white/10 my-3"></div>
-                    </div>
-
-                    <div class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Discussions actives</div>
-                    <div id="conversationsList" class="space-y-2.5">
-                        <div class="text-center text-zinc-500 py-6 text-xs">Aucune discussion. Cliquez sur la loupe pour rechercher un compte !</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. ONGLET SECRET -->
-            <div id="tabSecret" class="flex-1 flex flex-col h-full overflow-hidden hidden p-5 overflow-y-auto pb-24 text-center">
-                <div class="p-3.5 border-b border-white/10 liquid-element shrink-0 mb-4 -mx-5 -mt-5">
-                    <h2 class="font-black text-sm text-yellow-400 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-user-ninja"></i> Panneau Secret Admin 🔑
-                    </h2>
-                </div>
-
-                <div id="secretLockScreen" class="space-y-4 my-auto py-10">
-                    <div class="w-16 h-16 bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 rounded-full flex items-center justify-center mx-auto text-2xl">
-                        <i class="fa-solid fa-key"></i>
-                    </div>
-                    <h3 class="font-bold text-sm text-white">Accès Restreint</h3>
-                    <p class="text-xs text-zinc-400">Entrez la clé maîtresse pour déverrouiller vos pouvoirs.</p>
-                    <input type="password" id="secretKeyInput" placeholder="Clé secrète..." class="w-full max-w-xs liquid-input focus:border-yellow-400 rounded-2xl px-4 py-3 text-white text-xs outline-none mx-auto text-center">
-                    <p id="secretError" class="text-red-400 text-xs hidden">Clé incorrecte !</p>
-                    <button onclick="unlockSecretPanel()" class="w-full max-w-xs bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all mx-auto">
-                        Déverrouiller 🔓
-                    </button>
-                </div>
-
-                <div id="secretPanelContent" class="hidden space-y-4 text-left">
-                    <div class="p-3 liquid-element rounded-2xl border border-yellow-500/30 space-y-2">
-                        <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-badge-check"></i> Badge Certifié Bleu (Forcé)
-                        </h4>
-                        <p class="text-[11px] text-zinc-400">Pour l'avoir automatiquement, atteignez 1k abonnés ! Ou forcez-le ici :</p>
-                        <button onclick="toggleCertifiedBadge()" id="certifiedBtn" class="w-full bg-xBlue text-white font-bold py-2.5 rounded-xl text-xs active:scale-95">
-                            Activer le Badge Certifié Bleu ✔️
-                        </button>
-                    </div>
-
-                    <div class="p-3 liquid-element rounded-2xl border border-yellow-500/30 space-y-2">
-                        <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-crown"></i> Badge Personnalisé (Donner par Pseudo)
-                        </h4>
-                        <p class="text-[11px] text-zinc-400">Laissez vide la case pseudo pour l'appliquer à vous-même.</p>
-                        <input type="text" id="targetUserForTitle" placeholder="Pseudo du compte (ex: lorenzo)" class="w-full liquid-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                        <input type="text" id="customTitleInput" placeholder="Texte du badge (Ex: Creator, VIP, Founder...)" class="w-full liquid-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                        <div class="flex gap-2">
-                            <button onclick="saveCustomTitleForUser(true)" class="flex-1 bg-yellow-500 text-black font-bold py-2.5 rounded-xl text-xs active:scale-95">
-                                Activer Badge 👑
-                            </button>
-                            <button onclick="saveCustomTitleForUser(false)" class="bg-red-500/20 hover:bg-red-500/40 text-red-300 border border-red-500/30 font-bold px-3 py-2.5 rounded-xl text-xs active:scale-95">
-                                Désactiver
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="p-3 liquid-element rounded-2xl border border-yellow-500/30 space-y-2">
-                        <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-users"></i> Donneur d'Abonnés (À N'importe qui)
-                        </h4>
-                        <input type="text" id="targetUserForFollowers" placeholder="Pseudo du compte (ex: lorenzo)" class="w-full liquid-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                        <div class="flex gap-2">
-                            <input type="number" id="boostFollowersInput" placeholder="+ Nombre d'abonnés" class="flex-1 liquid-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                            <button onclick="boostFollowersForUser()" class="bg-yellow-500 text-black font-bold px-4 py-2 rounded-xl text-xs active:scale-95">Envoyer 🚀</button>
-                        </div>
-                    </div>
-
-                    <div class="p-3 liquid-element rounded-2xl border border-yellow-500/30 space-y-2">
-                        <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-chart-line"></i> Boost de Posts (Vues & Likes)
-                        </h4>
-                        <input type="number" id="boostViewsInput" placeholder="+ Nombre de Vues" class="w-full liquid-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                        <input type="number" id="boostLikesInput" placeholder="+ Nombre de Likes fictifs" class="w-full liquid-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                        <button onclick="boostMyLastPost()" class="w-full bg-yellow-500 text-black font-bold py-2.5 rounded-xl text-xs active:scale-95">
-                            Booster ma dernière publication 🚀
-                        </button>
-                    </div>
-
-                    <div class="p-3 liquid-element rounded-2xl border border-yellow-500/30 space-y-2">
-                        <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-comment-dots"></i> Injecteur de Commentaires Fictifs
-                        </h4>
-                        <input type="text" id="fakeCommentAuthor" placeholder="Pseudo du faux compte (ex: fan_secret)" class="w-full liquid-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                        <input type="text" id="fakeCommentText" placeholder="Contenu du commentaire..." class="w-full liquid-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                        <button onclick="injectFakeComment()" class="w-full bg-yellow-500 text-black font-bold py-2.5 rounded-xl text-xs active:scale-95">
-                            Injecter le commentaire
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. ONGLET COMPTE -->
-            <div id="tabAccount" class="flex-1 flex flex-col h-full overflow-hidden hidden p-5 overflow-y-auto text-center pb-24">
-                <div class="relative w-24 h-24 mx-auto mt-4 mb-3">
-                    <div id="accountAvatar" class="w-24 h-24 bg-xBlue text-white font-black rounded-full flex items-center justify-center text-3xl shadow-lg border-2 border-white/30 overflow-hidden bg-cover bg-center cursor-pointer" onclick="openUserProfile(currentUsername)">
-                        <span id="accountAvatarLetter">?</span>
-                    </div>
-                    <label for="pfpGalleryInput" class="absolute bottom-0 right-0 bg-xBlue text-white p-2 rounded-full cursor-pointer shadow-md hover:scale-105">
-                        <i class="fa-solid fa-camera text-xs"></i>
-                    </label>
-                    <input type="file" id="pfpGalleryInput" accept="image/*" class="hidden" onchange="openCropperModal(event)">
-                </div>
-
-                <div class="flex items-center justify-center gap-1 flex-wrap">
-                    <h2 id="accountDisplayName" class="font-extrabold text-lg text-white">---</h2>
-                    <span id="accountCertifiedBadge" class="hidden text-xBlue text-sm"><i class="fa-solid fa-circle-check"></i></span>
-                    <span id="accountCustomBadge" class="hidden bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full"></span>
-                </div>
-                <div class="flex items-center justify-center gap-1.5 mb-2">
-                    <div id="accountStatusIndicator" class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
-                    <p id="accountUsername" class="text-xs text-xBlue font-semibold">@---</p>
-                    <span class="text-zinc-500 text-xs">•</span>
-                    <p id="accountAgeDisplay" class="text-xs text-zinc-400 font-medium">-- ans</p>
-                </div>
-
-                <div class="flex justify-center gap-6 my-2 liquid-element p-3 rounded-2xl max-w-xs mx-auto">
-                    <div>
-                        <span id="accountFollowersCount" class="font-black text-sm text-white block">0</span>
-                        <span class="text-[10px] text-zinc-400">Abonnés</span>
-                    </div>
-                    <div class="w-px bg-white/10"></div>
-                    <div>
-                        <span id="accountFollowingCount" class="font-black text-sm text-white block">0</span>
-                        <span class="text-[10px] text-zinc-400">Abonnements</span>
-                    </div>
-                </div>
-
-                <div class="space-y-3 mt-3 text-left max-w-xs mx-auto w-full">
-                    <div>
-                        <label class="text-[10px] text-zinc-400 block mb-1">Nom d'affichage :</label>
-                        <input type="text" id="accountNameInput" placeholder="Votre nom" class="w-full liquid-input focus:border-xBlue rounded-2xl px-4 py-2.5 text-xs text-white outline-none">
-                    </div>
-                    <div class="p-3 liquid-element rounded-2xl border border-white/10">
-                        <label class="text-[10px] text-xBlue font-bold uppercase tracking-wider block mb-1">
-                            <i class="fa-solid fa-cake-candles"></i> Préciser votre Âge :
-                        </label>
-                        <input type="number" id="accountAgeInput" placeholder="Ex: 15" class="w-full liquid-input focus:border-xBlue rounded-xl px-3 py-2 text-xs text-white outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-zinc-400 block mb-1">Bio :</label>
-                        <textarea id="accountBioInput" placeholder="Votre bio..." rows="2" class="w-full liquid-input focus:border-xBlue rounded-2xl p-3 text-xs text-white outline-none resize-none"></textarea>
-                    </div>
-                    <button onclick="saveAccountProfile()" class="w-full bg-white hover:bg-zinc-200 text-black font-extrabold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all">
-                        Mettre à jour le profil 💾
-                    </button>
-                    <button onclick="logout()" class="w-full bg-white/10 hover:bg-white/20 text-red-400 font-bold py-3 rounded-2xl text-xs transition-all border border-white/10 mt-2">
-                        Se déconnecter 🚪
-                    </button>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- BARRE DE NAVIGATION EN BAS AVEC BULLE ROUGE NOTIFICATION -->
-        <div id="bottomNav" class="p-2 border-t border-white/10 liquid-element flex justify-around items-center shrink-0 z-40 hidden">
-            <button onclick="switchTab('feed')" id="navFeed" class="flex-1 flex flex-col items-center py-2 text-xBlue transition-all">
-                <i class="fa-solid fa-image text-base mb-0.5"></i>
-                <span class="text-[10px] font-bold">Publications</span>
-            </button>
-            <button onclick="switchTab('messages')" id="navMessages" class="flex-1 flex flex-col items-center py-2 text-zinc-400 hover:text-white transition-all relative">
-                <div class="relative">
-                    <i class="fa-solid fa-envelope text-base mb-0.5"></i>
-                    <span id="msgRedBadge" class="absolute -top-1 -right-2 bg-red-500 text-white text-[9px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-black hidden">0</span>
-                </div>
-                <span class="text-[10px] font-bold">Messages</span>
-            </button>
-            <button onclick="switchTab('secret')" id="navSecret" class="flex-1 flex flex-col items-center py-2 text-zinc-400 hover:text-white transition-all">
-                <i class="fa-solid fa-user-ninja text-base mb-0.5"></i>
-                <span class="text-[10px] font-bold">Secret</span>
-            </button>
-            <button onclick="switchTab('account')" id="navAccount" class="flex-1 flex flex-col items-center py-2 text-zinc-400 hover:text-white transition-all">
-                <i class="fa-solid fa-user text-base mb-0.5"></i>
-                <span class="text-[10px] font-bold">Compte</span>
-            </button>
-        </div>
-
-        <!-- MODAL : CRÉATION DE POST -->
-        <div id="createPostModal" class="absolute inset-0 bg-black/90 backdrop-blur-2xl z-50 flex flex-col hidden overflow-hidden p-4">
-            <div class="flex justify-between items-center pb-3 border-b border-white/10 shrink-0">
-                <h3 class="font-bold text-sm text-white">Créer une publication</h3>
-                <button onclick="closeCreatePostModal()" class="text-zinc-400 hover:text-white text-sm"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="flex-1 overflow-y-auto py-4 space-y-4">
-                <textarea id="postContentInput" placeholder="Quoi de neuf ?! 📸" rows="3" class="w-full liquid-input focus:border-xBlue rounded-2xl p-3 text-xs text-white outline-none resize-none"></textarea>
-                
-                <div id="postImagePreviewContainer" class="hidden relative max-h-48 overflow-hidden rounded-2xl border border-white/15">
-                    <img id="postImagePreview" class="w-full object-cover">
-                    <button onclick="removePostImage()" class="absolute top-2 right-2 bg-black/70 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <label for="cameraPostInput" class="liquid-element p-3 rounded-2xl text-center cursor-pointer hover:bg-white/10 flex flex-col items-center gap-1.5 active:scale-95">
-                        <i class="fa-solid fa-camera text-xBlue text-base"></i>
-                        <span class="text-[11px] font-bold">Prendre en photo</span>
-                    </label>
-                    <input type="file" id="cameraPostInput" accept="image/*" capture="camera" class="hidden" onchange="previewPostImage(event)">
-
-                    <label for="galleryPostInput" class="liquid-element p-3 rounded-2xl text-center cursor-pointer hover:bg-white/10 flex flex-col items-center gap-1.5 active:scale-95">
-                        <i class="fa-solid fa-image text-xBlue text-base"></i>
-                        <span class="text-[11px] font-bold">Galerie</span>
-                    </label>
-                    <input type="file" id="galleryPostInput" accept="image/*" class="hidden" onchange="previewPostImage(event)">
-                </div>
-
-                <button onclick="publishPost()" class="w-full bg-xBlue hover:bg-sky-500 text-white font-extrabold py-3.5 rounded-2xl text-xs shadow-lg uppercase tracking-wider active:scale-95">
-                    Publier 🚀
-                </button>
-            </div>
-        </div>
-
-        <!-- MODAL : LIGHTBOX -->
-        <div id="lightboxModal" class="absolute inset-0 bg-black/95 backdrop-blur-2xl z-[70] flex flex-col items-center justify-center p-4 hidden" onclick="closeLightbox()">
-            <button class="absolute top-4 right-4 text-white text-xl p-2"><i class="fa-solid fa-xmark"></i></button>
-            <img id="lightboxImage" class="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl">
-        </div>
-
-        <!-- MODAL : PROFIL ENTIER D'UN UTILISATEUR -->
-        <div id="userProfileModal" class="absolute inset-0 bg-black/90 backdrop-blur-2xl z-50 flex flex-col hidden overflow-hidden">
-            <div class="p-3 border-b border-white/10 liquid-element flex items-center justify-between shrink-0">
-                <button onclick="closeUserProfileModal()" class="text-zinc-200 hover:text-white p-2 text-xs"><i class="fa-solid fa-chevron-left"></i> Retour</button>
-                <h3 class="font-bold text-xs text-white">Profil Membre</h3>
-                <div class="w-10"></div>
-            </div>
-            <div class="flex-1 overflow-y-auto p-5 text-center pb-20">
-                <div class="relative w-24 h-24 mx-auto mb-3">
-                    <div id="uModalAvatar" class="w-24 h-24 bg-xBlue text-white font-black rounded-full flex items-center justify-center text-3xl shadow-lg border-2 border-white/30 overflow-hidden bg-cover bg-center">
-                        <span id="uModalAvatarLetter">?</span>
-                    </div>
-                    <div id="uModalStatusBadge" class="w-3.5 h-3.5 bg-zinc-500 border-2 border-black rounded-full absolute bottom-1 right-1"></div>
-                </div>
-                <div class="flex items-center justify-center gap-1 flex-wrap">
-                    <h2 id="uModalName" class="font-extrabold text-lg text-white">---</h2>
-                    <span id="uModalCertifiedBadge" class="hidden text-xBlue text-sm"><i class="fa-solid fa-circle-check"></i></span>
-                    <span id="uModalCustomBadge" class="hidden bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full"></span>
-                </div>
-                <div class="flex items-center justify-center gap-1.5 mb-2">
-                    <p id="uModalTag" class="text-xs text-xBlue font-semibold">@---</p>
-                    <span class="text-zinc-500 text-xs">•</span>
-                    <p id="uModalAgeDisplay" class="text-xs text-zinc-400 font-medium">-- ans</p>
-                </div>
-                
-                <div class="flex justify-center gap-6 my-2 liquid-element p-3 rounded-2xl max-w-xs mx-auto">
-                    <div>
-                        <span id="uModalFollowers" class="font-black text-sm text-white block">0</span>
-                        <span class="text-[10px] text-zinc-400">Abonnés</span>
-                    </div>
-                    <div class="w-px bg-white/10"></div>
-                    <div>
-                        <span id="uModalFollowing" class="font-black text-sm text-white block">0</span>
-                        <span class="text-[10px] text-zinc-400">Abonnements</span>
-                    </div>
-                </div>
-
-                <div class="liquid-element p-3 rounded-2xl max-w-xs mx-auto text-left my-3">
-                    <p class="text-[10px] text-zinc-400 uppercase font-bold mb-0.5">Bio</p>
-                    <p id="uModalBio" class="text-xs text-zinc-200 italic">Aucune bio.</p>
-                </div>
-
-                <div class="flex gap-2 max-w-xs mx-auto mb-5">
-                    <button id="uModalFollowBtn" onclick="toggleFollowUser()" class="flex-1 bg-xBlue text-white font-extrabold py-2.5 rounded-2xl text-xs uppercase tracking-wider active:scale-95 shadow-lg">
-                        S'abonner ➕
-                    </button>
-                    <button id="uModalMsgBtn" onclick="sendChatRequestFromProfile()" class="flex-1 liquid-element hover:bg-white/20 text-white font-bold py-2.5 rounded-2xl text-xs border border-white/15">
-                        Message 💬
-                    </button>
-                </div>
-
-                <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider text-left mb-2 max-w-xs mx-auto">Publications</h4>
-                <div id="uModalPostsList" class="space-y-3 max-w-xs mx-auto"></div>
-            </div>
-        </div>
-
-        <!-- MODAL : COMMENTAIRES -->
-        <div id="commentsModal" class="absolute inset-0 bg-black/90 backdrop-blur-2xl z-50 flex flex-col hidden overflow-hidden">
-            <div class="p-3 border-b border-white/10 liquid-element flex items-center justify-between shrink-0">
-                <button onclick="closeCommentsModal()" class="text-zinc-200 hover:text-white p-2 text-xs"><i class="fa-solid fa-chevron-left"></i> Retour</button>
-                <h3 class="font-bold text-xs text-white">Commentaires</h3>
-                <div class="w-10"></div>
-            </div>
-            <div id="commentsListContainer" class="flex-1 overflow-y-auto p-4 space-y-2.5"></div>
-            <div class="p-2.5 border-t border-white/10 liquid-element flex items-center gap-2 shrink-0 pb-3 bg-black/40">
-                <input type="text" id="commentInput" placeholder="Écrire un commentaire ou une réponse..." class="flex-1 min-w-0 liquid-input focus:border-xBlue rounded-full px-3.5 py-2 text-xs text-white outline-none">
-                <button onclick="sendComment()" class="w-9 h-9 bg-xBlue hover:bg-sky-500 text-white rounded-full flex items-center justify-center active:scale-95 shadow-lg shrink-0">
-                    <i class="fa-solid fa-paper-plane text-xs"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- ÉCRAN DE CHAT PRIVÉ -->
-        <div id="chatScreen" class="absolute inset-x-0 top-0 bottom-[53px] bg-black/95 backdrop-blur-2xl z-30 flex flex-col hidden overflow-hidden">
-            <div class="p-3 border-b border-white/10 liquid-element flex items-center justify-between shrink-0">
-                <div class="flex items-center space-x-2.5">
-                    <button onclick="closeChat()" class="text-zinc-200 hover:text-white p-1.5 rounded-full active:bg-white/10">
-                        <i class="fa-solid fa-chevron-left text-base"></i>
-                    </button>
-                    <div class="flex items-center gap-2 cursor-pointer" onclick="openUserProfile(activeFriendUsername)">
-                        <div id="chatHeaderAvatar" class="w-7 h-7 bg-xBlue rounded-full bg-cover bg-center flex items-center justify-center font-bold text-xs"></div>
-                        <div>
-                            <h3 id="chatFriendName" class="font-bold text-white text-xs">---</h3>
-                            <p id="chatFriendTag" class="text-[9px] text-zinc-400">@---</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-0"></div>
-
-            <div id="typingIndicator" class="px-4 py-1 text-[11px] text-xBlue flex items-center gap-2 hidden shrink-0">
-                <span id="typingText">est en train d'écrire...</span>
-                <div class="flex space-x-1">
-                    <div class="w-1.5 h-1.5 bg-xBlue rounded-full typing-dot"></div>
-                    <div class="w-1.5 h-1.5 bg-xBlue rounded-full typing-dot"></div>
-                    <div class="w-1.5 h-1.5 bg-xBlue rounded-full typing-dot"></div>
-                </div>
-            </div>
-
-            <div class="p-2.5 border-t border-white/10 liquid-element flex items-center gap-2 shrink-0 pb-3 bg-black/40">
-                <input type="text" id="messageInput" placeholder="Envoyer un message privé..." class="flex-1 min-w-0 liquid-input focus:border-xBlue rounded-full px-3.5 py-2 text-xs text-white outline-none" oninput="handleTyping()">
-                <button onclick="sendTextMessage()" class="w-9 h-9 bg-xBlue hover:bg-sky-500 text-white rounded-full flex items-center justify-center active:scale-95 shadow-lg shrink-0">
-                    <i class="fa-solid fa-paper-plane text-xs"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- MODAL : CROPPER -->
-        <div id="cropperModal" class="absolute inset-0 bg-black/95 backdrop-blur-2xl z-[60] flex flex-col items-center justify-center p-4 hidden">
-            <h3 class="text-sm font-bold text-white mb-3">Recadrer votre photo de profil</h3>
-            <div class="max-w-xs max-h-[60vh] overflow-hidden rounded-2xl border border-white/20 mb-4 bg-black">
-                <img id="cropperImage" class="max-w-full">
-            </div>
-            <div class="flex gap-3 w-full max-w-xs">
-                <button onclick="closeCropperModal()" class="flex-1 bg-zinc-800 text-zinc-300 font-bold py-3 rounded-2xl text-xs">Annuler</button>
-                <button onclick="cropAndSavePfp()" class="flex-1 bg-white text-black font-extrabold py-3 rounded-2xl text-xs shadow-lg">Valider ✂️</button>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- SCRIPT APPLICATION -->
-    <script>
-        // CONFIGURATION FIREBASE TOTALEMENT OUVERTE & SANS BLOCAGE
-        const firebaseConfig = {
-            apiKey: "AIzaSyBzGZXWDsyL6OvMdTk5Un7-3X7DFHQAMDU",
-            authDomain: "lunarsnap-479f4.firebaseapp.com",
-            projectId: "lunarsnap-479f4",
-            storageBucket: "lunarsnap-479f4.firebasestorage.app",
-            messagingSenderId: "154292267811",
-            appId: "1:154292267811:web:e4aade087a528b1552ba96"
-        };
-
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.firestore();
-
-        let currentUsername = null; 
-        let currentDisplayName = null; 
-        let currentPfp = null;
-        let currentBio = "";
-        let currentAge = null;
-        let isCertified = false;
-        let customTitle = "";
-        let pendingPostImageBase64 = null;
-        let activeFriendUsername = null;
-        let activeFriendDisplayName = null;
-        let inspectedUsername = null;
-        let activePostIdForComments = null;
-        let messageUnsubscribe = null;
-        let typingUnsubscribe = null;
-        let typingTimeout = null;
-        let cropper = null;
-        let totalUnreadMessages = 0;
-
-        function formatNumber(num) {
-            if (!num || isNaN(num)) return 0;
-            if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-            return num;
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedUser = localStorage.getItem('lunarorg_user') || localStorage.getItem('lunaris_user');
-            if (savedUser) {
-                currentUsername = savedUser;
-                loadUserSession();
-            }
-            if ('Notification' in window && Notification.permission !== 'granted') {
-                Notification.requestPermission();
-            }
-        });
-
-        function setUserOnlineStatus(isOnline) {
-            if (!currentUsername) return;
-            db.collection('users').doc(currentUsername).update({ online: isOnline }).catch(() => {});
-        }
-
-        window.addEventListener('beforeunload', () => setUserOnlineStatus(false));
-        window.addEventListener('focus', () => setUserOnlineStatus(true));
-        window.addEventListener('blur', () => setUserOnlineStatus(false));
-
-        function loginOrRegister() {
-            const username = document.getElementById('usernameInput').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-            const password = document.getElementById('passwordInput').value.trim();
-            const errorElement = document.getElementById('authError');
-
-            if (!username || !password) {
-                errorElement.innerText = "Nom d'utilisateur et mot de passe requis !";
-                errorElement.classList.remove('hidden');
-                return;
-            }
-            if (password.length < 6) {
-                errorElement.innerText = "Mot de passe : 6 caractères min.";
-                errorElement.classList.remove('hidden');
-                return;
-            }
-
-            const userRef = db.collection('users').doc(username);
-            userRef.get().then(doc => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    if (data.password && data.password !== password) {
-                        errorElement.innerText = "Mot de passe incorrect.";
-                        errorElement.classList.remove('hidden');
-                        return;
-                    }
-                    localStorage.setItem('lunarorg_user', username);
-                    currentUsername = username;
-                    loadUserSession();
-                } else {
-                    currentUsername = username;
-                    userRef.set({
-                        username: username,
-                        displayName: username,
-                        password: password,
-                        age: null,
-                        pfp: null,
-                        bio: "Salut sur lunarorg !",
-                        online: true,
-                        certified: false,
-                        customTitle: "",
-                        followers: [],
-                        following: [],
-                        requests: [],
-                        friends: []
-                    }, { merge: true }).then(() => {
-                        document.getElementById('loginScreen').classList.add('hidden');
-                        document.getElementById('newDisplayNameInput').value = username;
-                        document.getElementById('setupProfileModal').classList.remove('hidden');
-                    });
-                }
-            });
-        }
-
-        function submitNewDisplayName() {
-            const name = document.getElementById('newDisplayNameInput').value.trim();
-            if (!name) return;
-
-            db.collection('users').doc(currentUsername).update({
-                displayName: name
-            }).then(() => {
-                document.getElementById('setupProfileModal').classList.add('hidden');
-                localStorage.setItem('lunarorg_user', currentUsername);
-                loadUserSession();
-            });
-        }
-
-        function loadUserSession() {
-            setUserOnlineStatus(true);
-            db.collection('users').doc(currentUsername).onSnapshot(doc => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    currentDisplayName = data.displayName || currentUsername;
-                    currentPfp = data.pfp || null;
-                    currentBio = data.bio || "";
-                    currentAge = data.age || null;
-                    
-                    const followersCount = (data.followers || []).length;
-                    
-                    isCertified = (followersCount >= 1000) || (data.certified || false);
-                    customTitle = data.customTitle || "";
-
-                    document.getElementById('accountDisplayName').innerText = currentDisplayName;
-                    document.getElementById('accountUsername').innerText = '@' + currentUsername;
-                    document.getElementById('accountBioInput').value = currentBio;
-                    document.getElementById('accountNameInput').value = currentDisplayName;
-                    document.getElementById('accountAgeInput').value = currentAge || "";
-                    document.getElementById('accountAgeDisplay').innerText = currentAge ? `${currentAge} ans` : "Âge non précisé";
-                    document.getElementById('accountFollowersCount').innerText = formatNumber(followersCount);
-                    document.getElementById('accountFollowingCount').innerText = formatNumber((data.following || []).length);
-                    
-                    const badgeEl = document.getElementById('accountCertifiedBadge');
-                    if (isCertified) badgeEl.classList.remove('hidden');
-                    else badgeEl.classList.add('hidden');
-
-                    const customBadgeEl = document.getElementById('accountCustomBadge');
-                    if (customTitle) {
-                        customBadgeEl.innerText = customTitle;
-                        customBadgeEl.classList.remove('hidden');
-                    } else {
-                        customBadgeEl.classList.add('hidden');
-                    }
-
-                    updateAvatarDisplay('accountAvatar', 'accountAvatarLetter', currentPfp, currentDisplayName);
-
-                    document.getElementById('loginScreen').classList.add('hidden');
-                    document.getElementById('mainApp').classList.remove('hidden');
-                    document.getElementById('bottomNav').classList.remove('hidden');
-
-                    loadFeedPosts();
-                    loadConversations();
-                    loadRequestsBox();
-                    listenToGlobalNotifications();
-                }
-            });
-        }
-
-        function listenToGlobalNotifications() {
-            db.collection('users').doc(currentUsername).onSnapshot(userDoc => {
-                if (!userDoc.exists) return;
-                const friends = userDoc.data().friends || [];
-                
-                let unreadMap = {};
-
-                friends.forEach(fUser => {
-                    const chatId = [currentUsername, fUser].sort().join('_');
-                    db.collection('chats').doc(chatId).collection('messages').orderBy('timestamp', 'desc').limit(1).onSnapshot(snapshot => {
-                        if (!snapshot.empty) {
-                            const lastMsg = snapshot.docs[0].data();
-                            if (lastMsg.sender !== currentUsername && !lastMsg.read) {
-                                unreadMap[fUser] = lastMsg.content;
-
-                                if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-                                    new Notification(`Message de @${lastMsg.sender}`, {
-                                        body: lastMsg.content,
-                                        icon: 'https://cdn-icons-png.flaticon.com/512/3670/3670051.png'
-                                    });
-                                }
-                            } else {
-                                delete unreadMap[fUser];
-                            }
-
-                            updateNotificationUI(Object.keys(unreadMap).length);
-                        }
-                    });
-                });
-            });
-        }
-
-        function updateNotificationUI(count) {
+ updateNotificationUI(count) {
             totalUnreadMessages = count;
             const topBar = document.getElementById('topNotificationBar');
             const topText = document.getElementById('topNotifText');
@@ -1149,7 +379,346 @@
                             </div>
                             ${isMyPost ? `<button onclick="deletePost('${postId}')" class="text-zinc-500 hover:text-red-400 text-xs p-1"><i class="fa-solid fa-trash"></i></button>` : ''}
                         </div>
-                        ${post.content ? `<p class="text-xs text-zinc-200">${post.content}</p>` : ''}
+                        ${post.content ? `<p class="t<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>lunarorg - TikTok Experience</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        xDark: '#000000',
+                        xBlue: '#1d9bf0',
+                        tiktokPink: '#fe2c55',
+                        tiktokCyan: '#25f4ee'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Cropper.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <!-- Firebase SDKs Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body {
+            background: #000000;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        .tiktok-plus-btn {
+            background: linear-gradient(90deg, #25f4ee 0%, #fe2c55 100%);
+            border-radius: 12px;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tiktok-plus-inner {
+            background: #ffffff;
+            color: #000000;
+            border-radius: 10px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ultra-liquid-glass {
+            background: rgba(18, 18, 28, 0.9);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .liquid-element {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .liquid-input {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .video-snap-container {
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+            height: 100%;
+        }
+
+        .video-snap-card {
+            scroll-snap-align: start;
+            height: 100%;
+            position: relative;
+        }
+
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="text-white h-[100dvh] w-screen flex flex-col justify-center items-center relative overflow-hidden bg-black">
+
+    <div class="w-full max-w-md h-[100dvh] sm:h-[92vh] ultra-liquid-glass sm:rounded-3xl flex flex-col relative overflow-hidden z-10">
+
+        <!-- BANNIÈRE DE NOTIFICATION EN HAUT -->
+        <div id="topNotificationBar" onclick="switchTab('messages')" class="w-full bg-xBlue/90 backdrop-blur-md px-4 py-2 text-white text-[11px] font-bold flex justify-between items-center z-50 cursor-pointer shadow-lg hidden">
+            <span id="topNotifText" class="truncate flex items-center gap-1.5"><i class="fa-solid fa-bell animate-bounce"></i> 0 message non lu</span>
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        </div>
+
+        <!-- ECRAN 1 : CONNEXION / INSCRIPTION PAR EMAIL -->
+        <div id="loginScreen" class="absolute inset-0 z-50 flex flex-col justify-center items-center p-6 text-center overflow-y-auto bg-black/95 backdrop-blur-2xl">
+            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-3 shadow-lg border border-white/40">
+                <i class="fa-solid fa-moon text-black text-3xl"></i>
+            </div>
+            <h1 class="text-2xl font-black tracking-tight text-white mb-1">lunarorg</h1>
+            <p class="text-zinc-400 text-xs mb-6">Connectez-vous avec votre adresse e-mail</p>
+
+            <div class="w-full max-w-xs space-y-3.5">
+                <input type="email" id="emailInput" placeholder="Adresse e-mail (ex: exemple@gmail.com)" class="w-full liquid-input focus:border-xBlue rounded-2xl px-4 py-3 text-white placeholder-zinc-500 text-xs outline-none">
+                <input type="password" id="passwordInput" placeholder="Mot de passe (6 car. min)" class="w-full liquid-input focus:border-xBlue rounded-2xl px-4 py-3 text-white placeholder-zinc-500 text-xs outline-none">
+                
+                <p id="authError" class="text-red-400 text-xs hidden"></p>
+
+                <button onclick="loginOrRegisterWithEmail()" class="w-full bg-white hover:bg-zinc-200 text-black font-extrabold py-3.5 rounded-2xl shadow-lg active:scale-95 text-xs tracking-wider uppercase transition-all">
+                    Se connecter / S'inscrire 🚀
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL NOUVELLE INSCRIPTION : PSEUDO & NOM D'AFFICHAGE -->
+        <div id="setupProfileModal" class="absolute inset-0 z-[60] flex flex-col justify-center items-center p-6 text-center bg-black/95 backdrop-blur-2xl hidden">
+            <div class="w-14 h-14 bg-tiktokPink/20 text-tiktokPink rounded-full flex items-center justify-center mb-3 border border-tiktokPink/40 text-2xl">
+                <i class="fa-solid fa-user-gear"></i>
+            </div>
+            <h2 class="text-xl font-black text-white mb-1">Bienvenue ! 🎉</h2>
+            <p class="text-zinc-400 text-xs mb-6">Choisissez votre pseudo unique et votre nom d'affichage.</p>
+
+            <div class="w-full max-w-xs space-y-3.5">
+                <div>
+                    <label class="text-[10px] text-zinc-400 block text-left mb-1">Nom d'utilisateur (Pseudo unique) :</label>
+                    <input type="text" id="newUsernameInput" placeholder="ex: lorenzo67" class="w-full liquid-input focus:border-tiktokPink rounded-2xl px-4 py-3 text-white placeholder-zinc-500 text-xs outline-none">
+                    <p class="text-[9px] text-zinc-500 text-left mt-1"><i class="fa-solid fa-clock"></i> Modifiable 1 fois par semaine (7 jours)</p>
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-zinc-400 block text-left mb-1">Nom d'affichage :</label>
+                    <input type="text" id="newDisplayNameInput" placeholder="ex: Lorenzo ⚡" class="w-full liquid-input focus:border-tiktokPink rounded-2xl px-4 py-3 text-white placeholder-zinc-500 text-xs outline-none">
+                    <p class="text-[9px] text-zinc-500 text-left mt-1"><i class="fa-solid fa-clock"></i> Modifiable 1 fois tous les 1 jour (24h)</p>
+                </div>
+
+                <p id="setupError" class="text-red-400 text-xs hidden"></p>
+                
+                <button onclick="submitNewProfileSetup()" class="w-full bg-tiktokPink hover:bg-rose-600 text-white font-extrabold py-3.5 rounded-2xl shadow-lg active:scale-95 text-xs tracking-wider uppercase transition-all">
+                    Valider mon profil ✨
+                </button>
+            </div>
+        </div>
+
+        <!-- CONTENU PRINCIPAL AVEC ONGLETS -->
+        <div id="mainApp" class="flex-1 flex flex-col h-full overflow-hidden hidden relative">
+
+            <!-- 1. ONGLET FEED TIKTOK -->
+            <div id="tabFeed" class="flex-1 flex flex-col h-full overflow-hidden relative">
+                <div class="absolute top-3 left-0 right-0 z-30 flex justify-center items-center gap-6 text-xs font-bold shadow-md bg-gradient-to-b from-black/80 to-transparent pb-4 pt-1">
+                    <button class="text-zinc-400 hover:text-white">Abonnements</button>
+                    <button class="text-white border-b-2 border-white pb-0.5">Pour toi</button>
+                </div>
+
+                <div class="flex-1 video-snap-container w-full h-full" id="postsContainer">
+                    <div class="flex items-center justify-center h-full text-zinc-500 text-xs">Chargement en cours...</div>
+                </div>
+            </div>
+
+            <!-- 2. ONGLET MESSAGES -->
+            <div id="tabMessages" class="flex-1 flex flex-col h-full overflow-hidden hidden">
+                <div class="p-3.5 border-b border-white/10 liquid-element shrink-0 flex justify-between items-center">
+                    <h2 class="font-black text-sm text-white">Messages privés 💬</h2>
+                    <button onclick="toggleUserSearchModal()" class="w-8 h-8 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center text-xs active:scale-95 transition-all">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+
+                <div id="msgSearchBar" class="p-2 border-b border-white/10 liquid-element hidden">
+                    <div class="relative">
+                        <input type="text" id="searchUserInput" oninput="searchUsers()" placeholder="Rechercher un compte (@pseudo ou nom)..." class="w-full liquid-input focus:border-xBlue rounded-full pl-8 pr-8 py-2 text-xs text-white outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-zinc-400 text-xs"></i>
+                        <button onclick="toggleUserSearchModal()" class="absolute right-3 top-2 text-zinc-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-3 space-y-4 pb-20">
+                    <div id="searchResultsSection" class="hidden">
+                        <div class="text-[11px] font-bold text-xBlue uppercase tracking-wider mb-2">Résultats de la recherche</div>
+                        <div id="searchResultsList" class="space-y-2"></div>
+                        <div class="h-px bg-white/10 my-3"></div>
+                    </div>
+
+                    <div id="requestsSection" class="hidden">
+                        <div class="text-[11px] font-bold text-xBlue uppercase tracking-wider mb-2">Demandes de messages</div>
+                        <div id="requestsList" class="space-y-2"></div>
+                        <div class="h-px bg-white/10 my-3"></div>
+                    </div>
+
+                    <div class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Discussions actives</div>
+                    <div id="conversationsList" class="space-y-2.5">
+                        <div class="text-center text-zinc-500 py-6 text-xs">Aucune discussion. Cliquez sur la loupe pour rechercher un compte !</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. ONGLET SECRET -->
+            <div id="tabSecret" class="flex-1 flex flex-col h-full overflow-hidden hidden p-5 overflow-y-auto pb-24 text-center">
+                <div class="p-3.5 border-b border-white/10 liquid-element shrink-0 mb-4 -mx-5 -mt-5">
+                    <h2 class="font-black text-sm text-yellow-400 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-ninja"></i> Panneau Secret Admin 🔑
+                    </h2>
+                </div>
+
+                <div id="secretLockScreen" class="space-y-4 my-auto py-10">
+                    <div class="w-16 h-16 bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 rounded-full flex items-center justify-center mx-auto text-2xl">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <h3 class="font-bold text-sm text-white">Accès Restreint</h3>
+                    <p class="text-xs text-zinc-400">Entrez la clé maîtresse pour déverrouiller vos pouvoirs.</p>
+                    <input type="password" id="secretKeyInput" placeholder="Clé secrète..." class="w-full max-w-xs liquid-input focus:border-yellow-400 rounded-2xl px-4 py-3 text-white text-xs outline-none mx-auto text-center">
+                    <p id="secretError" class="text-red-400 text-xs hidden">Clé incorrecte !</p>
+                    <button onclick="unlockSecretPanel()" class="w-full max-w-xs bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all mx-auto">
+                        Déverrouiller 🔓
+                    </button>
+                </div>
+
+                <div id="secretPanelContent" class="hidden space-y-4 text-left">
+                    <div class="p-3 liquid-element rounded-2xl border border-yellow-500/30 space-y-2">
+                        <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-badge-check"></i> Badge Certifié Bleu (Forcé)
+                        </h4>
+                        <button onclick="toggleCertifiedBadge()" id="certifiedBtn" class="w-full bg-xBlue text-white font-bold py-2.5 rounded-xl text-xs active:scale-95">
+                            Activer le Badge Certifié Bleu ✔️
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. ONGLET COMPTE / PROFIL TIKTOK AVEC ÉDITION -->
+            <div id="tabAccount" class="flex-1 flex flex-col h-full overflow-hidden hidden bg-black overflow-y-auto text-center pb-24">
+                <div class="p-4 flex justify-between items-center border-b border-white/10">
+                    <span class="font-bold text-sm text-white" id="accountHeaderUsername">@---</span>
+                    <button onclick="logout()" class="text-zinc-400 hover:text-red-400 text-xs"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+
+                <div class="relative w-24 h-24 mx-auto mt-4 mb-2">
+                    <div id="accountAvatar" class="w-24 h-24 bg-xBlue text-white font-black rounded-full flex items-center justify-center text-3xl shadow-lg border-2 border-white/30 overflow-hidden bg-cover bg-center cursor-pointer" onclick="openUserProfile(currentUsername)">
+                        <span id="accountAvatarLetter">?</span>
+                    </div>
+                    <label for="pfpGalleryInput" class="absolute bottom-0 right-0 bg-tiktokPink text-white p-2 rounded-full cursor-pointer shadow-md hover:scale-105">
+                        <i class="fa-solid fa-camera text-xs"></i>
+                    </label>
+                    <input type="file" id="pfpGalleryInput" accept="image/*" class="hidden" onchange="openCropperModal(event)">
+                </div>
+
+                <div class="flex items-center justify-center gap-1 flex-wrap">
+                    <h2 id="accountDisplayName" class="font-extrabold text-base text-white">---</h2>
+                </div>
+
+                <div class="flex justify-center gap-8 my-3">
+                    <div>
+                        <span id="accountFollowingCount" class="font-black text-sm text-white block">0</span>
+                        <span class="text-[11px] text-zinc-400">Abonnements</span>
+                    </div>
+                    <div>
+                        <span id="accountFollowersCount" class="font-black text-sm text-white block">0</span>
+                        <span class="text-[11px] text-zinc-400">Abonnés</span>
+                    </div>
+                    <div>
+                        <span id="accountLikesCount" class="font-black text-sm text-white block">0</span>
+                        <span class="text-[11px] text-zinc-400">J'aime</span>
+                    </div>
+                </div>
+
+                <!-- FORMULAIRE DE MODIFICATION DES PSEUDOS -->
+                <div class="p-4 liquid-element rounded-2xl mx-4 my-2 text-left space-y-3">
+                    <h3 class="text-xs font-bold text-tiktokPink uppercase tracking-wider"><i class="fa-solid fa-pen"></i> Modifier mon profil</h3>
+                    
+                    <div>
+                        <label class="text-[10px] text-zinc-400 block mb-1">Nom d'affichage :</label>
+                        <input type="text" id="editDisplayNameInput" class="w-full liquid-input focus:border-tiktokPink rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <p id="displayNameTimerInfo" class="text-[9px] text-zinc-400 mt-0.5"></p>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-zinc-400 block mb-1">Nom d'utilisateur (@pseudo) :</label>
+                        <input type="text" id="editUsernameInput" class="w-full liquid-input focus:border-tiktokPink rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <p id="usernameTimerInfo" class="text-[9px] text-zinc-400 mt-0.5"></p>
+                    </div>
+
+                    <button onclick="saveProfileChanges()" class="w-full bg-tiktokPink hover:bg-rose-600 text-white font-extrabold py-2.5 rounded-xl text-xs uppercase shadow-md active:scale-95 transition-all">
+                        Enregistrer les modifications
+                    </button>
+                </div>
+
+                <div class="border-t border-white/10 pt-3 mt-2">
+                    <!-- GRILLE DE MES PUBLICATIONS -->
+                    <div id="myPostsGrid" class="grid grid-cols-3 gap-0.5 px-0.5">
+                        <div class="col-span-3 text-zinc-500 py-6 text-xs">Aucune publication.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BARRE DE NAVIGATION EN BAS -->
+        <div id="bottomNav" class="p-2 border-t border-white/10 bg-black flex justify-around items-center shrink-0 z-40 hidden">
+            <button onclick="switchTab('feed')" id="navFeed" class="flex-1 flex flex-col items-center py-1 text-white">
+                <i class="fa-solid fa-house text-base mb-0.5"></i>
+                <span class="text-[9px] font-bold">Accueil</span>
+            </button>
+            <button onclick="switchTab('messages')" id="navMessages" class="flex-1 flex flex-col items-center py-1 text-zinc-400 hover:text-white relative">
+                <div class="relative">
+                    <i class="fa-solid fa-message text-base mb-0.5"></i>
+                    <span id="msgRedBadge" class="absolute -top-1 -right-2 bg-tiktokPink text-white text-[9px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center hidden">0</span>
+                </div>
+                <span class="text-[9px] font-bold">Messages</span>
+            </button>
+
+            <!-- BOUTON + CENTRAL -->
+            <button onclick="openTikTokStudioModal()" class="w-11 h-7 tiktok-plus-btn active:scale-95 transition-transform mx-1">
+                <div class="tiktok-plus-inner">
+                    <i class="fa-solid fa-plus text-xs font-black"></i>
+                </div>
+            </button>
+
+            <button onclick="switchTab('secret')" id="navSecret" class="flex-1 flex flex-col items-center py-1 text-zinc-400 hover:text-white">
+                <i class="fa-solid fa-user-ninja text-base mb-0.5"></i>
+                <span class="text-[9px] font-bold">Secret</span>
+            </button>
+            <button onclick="switchTab('account')" id="navAccount" class="flex-1 flex flex-col items-center py-1 text-zinc-400 hover:text-white">
+                <i class="fa-solid fa-user text-base mb-0.5"></i>
+                <span class="text-[9px] font-bold">Profil</span>
+            </button>
+        </div>
+
+        <!ext-xs text-zinc-200">${post.content}</p>` : ''}
                         ${post.image ? `<img src="${post.image}" onclick="openLightbox('${post.image}')" class="rounded-xl w-full max-h-64 object-cover border border-white/10 cursor-pointer hover:opacity-95 transition-all">` : ''}
                         <div class="flex justify-between items-center pt-2 border-t border-white/10 text-[11px] text-zinc-400">
                             <button onclick="toggleLike('${postId}')" class="flex items-center gap-1 hover:text-red-500 ${isLiked ? 'text-red-500 font-bold' : ''}">
@@ -1517,99 +1086,9 @@
                 if (doc.exists) {
                     const isTyping = doc.data()[`typing_${activeFriendUsername}`] || false;
                     const ind = document.getElementById('typingIndicator');
-                    const txt = document.getElementById('typingText');
-                    if (isTyping) {
-                        txt.innerText = `${activeFriendDisplayName} est en train d'écrire...`;
-                        ind.classList.remove('hidden');
-                    } else {
-                        ind.classList.add('hidden');
-                    }
-                }
-            }, () => {});
-        }
-
-        function listenToMessages() {
-            const container = document.getElementById('messagesContainer');
-            if (messageUnsubscribe) messageUnsubscribe();
-
-            messageUnsubscribe = db.collection('chats').doc(getChatId()).collection('messages').orderBy('timestamp', 'asc').onSnapshot(snapshot => {
-                container.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const msg = doc.data();
-                    const isMe = msg.sender === currentUsername;
-                    
-                    if (!isMe && !msg.read) {
-                        db.collection('chats').doc(getChatId()).collection('messages').doc(doc.id).update({ read: true });
-                    }
-
-                    const bubble = document.createElement('div');
-                    bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`;
-                    bubble.innerHTML = `<div class="px-4 py-2.5 rounded-2xl text-xs max-w-[78%] break-words ${isMe ? 'liquid-bubble-me text-white font-semibold' : 'liquid-bubble-other text-white'}">${msg.content}</div>`;
-                    container.appendChild(bubble);
-                });
-                container.scrollTop = container.scrollHeight;
-            });
-        }
-
-        function sendTextMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            if (!text) return;
-            setTypingState(false);
-            db.collection('chats').doc(getChatId()).collection('messages').add({
-                sender: currentUsername,
-                content: text,
-                read: false,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            input.value = '';
-        }
-
-        function saveAccountProfile() {
-            const newName = document.getElementById('accountNameInput').value.trim();
-            const newBio = document.getElementById('accountBioInput').value.trim();
-            const newAge = parseInt(document.getElementById('accountAgeInput').value.trim()) || null;
-            if (newName) {
-                db.collection('users').doc(currentUsername).update({ 
-                    displayName: newName, 
-                    bio: newBio,
-                    age: newAge 
-                }).then(() => alert("Profil mis à jour avec succès ! 🚀"));
-            }
-        }
-
-        function openCropperModal(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.getElementById('cropperImage');
-                img.src = e.target.result;
-                document.getElementById('cropperModal').classList.remove('hidden');
-                if (cropper) cropper.destroy();
-                cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 1 });
-            };
-            reader.readAsDataURL(file);
+     .readAsDataURL(file);
         }
 
         function closeCropperModal() {
-            if (cropper) cropper.destroy();
-            document.getElementById('cropperModal').classList.add('hidden');
-        }
-
-        function cropAndSavePfp() {
-            if (!cropper) return;
-            const canvas = cropper.getCroppedCanvas({ width: 250, height: 250 });
-            const base64 = canvas.toDataURL('image/jpeg', 0.8);
-            db.collection('users').doc(currentUsername).update({ pfp: base64 }).then(() => {
-                currentPfp = base64;
-                updateAvatarDisplay('accountAvatar', 'accountAvatarLetter', base64, currentDisplayName);
-                closeCropperModal();
-            });
-        }
-
-        document.getElementById('messageInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') sendTextMessage(); });
-        document.getElementById('commentInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') sendComment(); });
-    </script>
-</body>
-</html>
+      (); });
+        document.getElementById('commentInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') se
